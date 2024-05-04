@@ -1,0 +1,313 @@
+# 日志设置
+log:
+  # 日志级别。可选 "debug" "info" "warn" "error"。默认 "info"
+  level: debug
+  # (实验性) 记录日志到文件。默认输出至 stderr。
+  # 注意: 日志应由守护进程处理而不是直接写入文件。
+  # 此选项仅用于调试。panic 日志不会被记录，其内容仍会输出至 stderr
+  file: "mosdns.log"
+
+# (实验性) API 入口设置
+api:
+  http: "127.0.0.1:8080" # 在该地址启动 api 接口
+
+# []string, 从其他配置文件载入 plugins 插件设置
+# include 的插件会比本配置文件中的插件先初始化
+include: []
+
+# 插件
+plugins:
+  # 国内域名
+  # https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/direct-list.txt
+  - tag: geosite_cn
+    type: domain_set
+    args:
+      files:
+        - "online_rules/geosite_cn.txt"
+  # 国内 IP
+  # https://raw.githubusercontent.com/IceCodeNew/4Share/master/geoip_china/china_ip_list.txt
+  # https://raw.githubusercontent.com/Loyalsoldier/geoip/release/text/cn.txt
+  - tag: geoip_cn
+    type: ip_set
+    args:
+      files:
+        - "online_rules/geoip_cn.txt"
+  # 国内苹果域名
+  # https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/apple-cn.txt
+  - tag: geosite_cn_apple
+    type: domain_set
+    args:
+      files:
+        - "online_rules/geosite_cn_apple.txt"
+  
+  # 国外域名
+  # https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/proxy-list.txt
+  - tag: geosite_no_cn
+    type: domain_set
+    args:
+      files:
+        - "online_rules/geosite_no_cn.txt"
+
+  # 自定义 host 配置
+  - tag: hosts
+    type: hosts
+    args:
+      files:
+        - "custom_rules/hosts.txt"
+
+  # 直连域名列表
+  - tag: custom_direct
+    type: domain_set
+    args:
+      files:
+        - "custom_rules/direct.txt"
+  
+  # 代理域名列表
+  - tag: custom_proxy
+    type: domain_set
+    args:
+      files:
+        - "custom_rules/proxy.txt"
+
+  # ddns 域名列表
+  - tag: ddnslist
+    type: domain_set
+    args:
+      files:
+        - "custom_rules/ddnslist.txt"
+
+  # 屏蔽域名列表
+  - tag: blocklist
+    type: domain_set
+    args:
+      files:
+        # - "online_rules/adlist.txt"
+        - "custom_rules/blocklist.txt"
+
+  # 本地 PRT 记录, 用于反向 DNS 查询的
+  - tag: local_ptr
+    type: domain_set
+    args:
+      files:
+        - "custom_rules/local-ptr.txt"
+
+  # 缓存
+  - tag: lazy_cache
+    type: cache
+    args:
+      size: 8000
+      lazy_cache_ttl: 86400
+
+  # 国内 dns 服务器
+  - tag: forward_local
+    type: forward
+    args:
+      concurrent: 2
+      upstreams:
+        - addr: "223.5.5.5"
+          enable_pipeline: false
+          insecure_skip_verify: false
+          idle_timeout: 30
+        - addr: "119.29.29.29"
+          enable_pipeline: false
+          insecure_skip_verify: false
+          idle_timeout: 30
+
+  # 国外 dns 服务器
+  - tag: forward_remote
+    type: forward
+    args:
+      concurrent: 2
+      upstreams:
+        - addr: "https://8.8.4.4/dns-query"
+          socks5: "127.0.0.1:7890"
+          enable_pipeline: true
+          idle_timeout: 500
+        - addr: "https://1.0.0.1/dns-query"
+          socks5: "127.0.0.1:7890"
+          enable_pipeline: true
+          idle_timeout: 500
+
+  # 修改 ttl
+  - tag: modify_ttl
+    type: sequence
+    args:
+      - exec: "ttl 0-0"
+
+  # 修改 ddns 域名的 ttl
+  - tag: modify_ddns_ttl
+    type: sequence
+    args:
+      - exec: "ttl 5-5"
+
+  # 有响应则终止返回
+  - tag: has_resp_sequence
+    type: sequence
+    args:
+      - matches: "qname $ddnslist"
+        exec: "$modify_ddns_ttl"
+      - matches: "!qname $ddnslist"
+        exec: "$modify_ttl"
+      - matches: "has_resp"
+        exec: "accept"
+
+  # 查询解析国外 dns
+  - tag: forward_remote_upstream
+    type: sequence
+    args:
+      - exec: "prefer_ipv4"
+      - exec: "$forward_remote"
+
+  # 回落处理
+  - tag: fallback
+    type: fallback
+    args:
+      primary: "forward_remote_upstream"
+      secondary: "forward_remote_upstream"
+      threshold: 500
+      always_standby: true
+
+  # 查询解析国外 ip
+  - tag: query_is_non_local_ip
+    type: sequence
+    args:
+      - exec: "$forward_local"
+      - matches: "!resp_ip $geoip_cn"
+        exec: "drop_resp"
+
+  #=================================================#
+  # 国内苹果域名 - start
+  #=================================================#
+
+  # 回落处理 - 国内苹果域名
+  - tag: apple_cn_domain_fallback
+    type: fallback
+    args:
+      primary: "query_is_non_local_ip"
+      secondary: "forward_local"
+      threshold: 100
+      always_standby: true
+
+  # 查询解析国内苹果域名
+  - tag: query_is_apple_cn_domain
+    type: sequence
+    args:
+      - matches: "!qname $geosite_cn_apple"
+        exec: "return"
+      - exec: "$apple_cn_domain_fallback"
+
+  #=================================================#
+  # 国内苹果域名 - end
+  #=================================================#
+
+  # 查询解析 ddns 域名
+  - tag: query_is_ddns_domain
+    type: sequence
+    args:
+      - matches: "qname $ddnslist"
+        exec: "$forward_local"
+
+  # 查询解析国内域名
+  - tag: query_is_local_domain
+    type: sequence
+    args:
+      - matches: "qname $geosite_cn"
+        exec: "$forward_local"
+
+  # 查询解析国外域名
+  - tag: query_is_no_local_domain
+    type: sequence
+    args:
+      - matches: "qname $geosite_no_cn"
+        exec: "$forward_remote_upstream"
+
+  # 查询解析自定义直连域名列表
+  - tag: query_is_custom_direct_domain
+    type: sequence
+    args:
+      - matches: "qname $custom_direct"
+        exec: "$forward_local"
+  
+  # 查询解析自定义代理域名列表
+  - tag: query_is_custom_proxy_domain
+    type: sequence
+    args:
+      - matches: "qname $custom_proxy"
+        exec: "$forward_remote_upstream"
+
+  # 查询解析屏蔽域名列表
+  # 直接返回 NXDOMAIN(3)，表示屏蔽
+  - tag: query_is_block_domain
+    type: sequence
+    args:
+      # 屏蔽域名
+      - matches: "qname $blocklist"
+        exec: "reject 3"
+      # PTR 记录
+      - matches:
+          - "qtype 12"
+          - "qname $local_ptr"
+        exec: "reject 3"
+      # SRV 记录
+      - matches: "qtype 65"
+        exec: "reject 3"
+
+  # 主要的运行逻辑插件
+  # sequence 插件中调用的插件 tag 必须在 sequence 前定义，
+  # 否则 sequence 找不到对应插件。
+  - tag: main_sequence
+    type: sequence
+    args:
+      # host
+      - exec: "$hosts"
+      - exec: "jump has_resp_sequence"
+
+      # 缓存
+      - matches:
+          - "!qname $ddnslist"
+          - "!qname $blocklist"
+          - "!qname $local_ptr"
+        exec: "$lazy_cache"
+      
+      # ddns
+      - exec: "$query_is_ddns_domain"
+      - exec: "jump has_resp_sequence"
+      
+      # 自定义直连域名列表
+      - exec: "$query_is_custom_direct_domain"
+      - exec: "jump has_resp_sequence"
+
+      # 自定义代理域名列表
+      - exec: "$query_is_custom_proxy_domain"
+      - exec: "jump has_resp_sequence"
+      
+      # 屏蔽列表
+      - exec: "$query_is_block_domain"
+      - exec: "jump has_resp_sequence"
+
+      # 国内苹果域名
+      - exec: "$query_is_apple_cn_domain"
+      - exec: "jump has_resp_sequence"
+      
+      # 国内域名
+      - exec: "$query_is_local_domain"
+      - exec: "jump has_resp_sequence"
+      
+      # 国外域名
+      - exec: "$query_is_no_local_domain"
+      - exec: "jump has_resp_sequence"
+      
+      # 回落
+      - exec: "$fallback"
+
+  - tag: udp_server
+    type: udp_server
+    args:
+      entry: "main_sequence"
+      listen: ":5335"
+
+  - tag: tcp_server
+    type: tcp_server
+    args:
+      entry: "main_sequence"
+      listen: ":5335"
