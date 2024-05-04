@@ -1,4 +1,8 @@
 online_rules/*
 !online_rules/.gitkeep
+
 cache.dump
+
 mosdns
+
+mosdns.log
