@@ -1,0 +1,2 @@
+# mosdns
+custom mosdns config
