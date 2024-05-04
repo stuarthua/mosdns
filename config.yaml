@@ -1,7 +1,7 @@
 # 日志设置
 log:
   # 日志级别。可选 "debug" "info" "warn" "error"。默认 "info"
-  level: debug
+  level: error
   # (实验性) 记录日志到文件。默认输出至 stderr。
   # 注意: 日志应由守护进程处理而不是直接写入文件。
   # 此选项仅用于调试。panic 日志不会被记录，其内容仍会输出至 stderr
