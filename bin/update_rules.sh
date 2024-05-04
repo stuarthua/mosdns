@@ -16,7 +16,7 @@ cd "$target_dir" || exit
 wget $github_proxy/https://raw.githubusercontent.com/Loyalsoldier/geoip/release/text/cn.txt -O geoip_cn.txt
 wget $github_proxy/https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/direct-list.txt -O geosite_cn.txt
 wget $github_proxy/https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/apple-cn.txt -O geosite_cn_apple.txt
-wget $github_proxy/https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/proxy-list.txt -O geosite_non_cn.txt
+wget $github_proxy/https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/proxy-list.txt -O geosite_no_cn.txt
 wget $github_proxy/https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/reject-list.txt -O adlist.txt
 
 # custom-rules
