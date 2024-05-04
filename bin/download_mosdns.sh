@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 
-# source ~/.config/stuart/scripts/base/basic.sh
+#====================================================================================================#
+#                         mosdns @https://github.com/IrineSistiana/mosdns/releases
+#====================================================================================================#
 
-#*************************************************************
-#                         mosdns
-#*************************************************************
-
-#@https://github.com/IrineSistiana/mosdns/releases
+# 获取脚本所在目录
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# 切换到脚本所在目录
+cd "$SCRIPT_DIR" || exit
+echo "Script directory: $SCRIPT_DIR"
 
 RED_COLOR='\033[1;31m'
 GREEN_COLOR='\033[1;32m'
@@ -53,10 +55,11 @@ unzip_file() {
 ## 测试下载
 # curl --connect-timeout 30 -m 600 -kLo "mosdns-darwin-amd64.zip" "https://github.com/IrineSistiana/mosdns/releases/download/v5.3.1/mosdns-darwin-amd64.zip"
 
+cd ..
+
 # github 下载代理
 # github_proxy=https://ghproxy.org
 github_proxy=https://gh-proxy.com
-
 # 下载 mosdns-darwin-amd64.zip
 download_file "$github_proxy/https://github.com/IrineSistiana/mosdns/releases/download/v5.3.1/mosdns-darwin-amd64.zip" "mosdns-darwin-amd64.zip"
 
