@@ -53,8 +53,12 @@ unzip_file() {
 ## 测试下载
 # curl --connect-timeout 30 -m 600 -kLo "mosdns-darwin-amd64.zip" "https://github.com/IrineSistiana/mosdns/releases/download/v5.3.1/mosdns-darwin-amd64.zip"
 
+# github 下载代理
+# github_proxy=https://ghproxy.org
+github_proxy=https://gh-proxy.com
+
 # 下载 mosdns-darwin-amd64.zip
-download_file "https://github.com/IrineSistiana/mosdns/releases/download/v5.3.1/mosdns-darwin-amd64.zip" "mosdns-darwin-amd64.zip"
+download_file "$github_proxy/https://github.com/IrineSistiana/mosdns/releases/download/v5.3.1/mosdns-darwin-amd64.zip" "mosdns-darwin-amd64.zip"
 
 echo ""
 
